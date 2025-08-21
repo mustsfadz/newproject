@@ -4,6 +4,7 @@
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>نظام إدارة الموظفين</title>
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
     <style>
         * {
             box-sizing: border-box;
@@ -12,116 +13,243 @@
         body {
             margin: 0;
             padding: 20px;
-            background-color: #f5f5f5;
+            background: linear-gradient(135deg, #f5f7fa 0%, #c3cfe2 100%);
             color: #333;
+            min-height: 100vh;
         }
         .container {
-            max-width: 1000px;
+            max-width: 1200px;
             margin: 0 auto;
             background: white;
-            padding: 20px;
-            border-radius: 8px;
-            box-shadow: 0 2px 10px rgba(0, 0, 0, 0.1);
+            padding: 30px;
+            border-radius: 15px;
+            box-shadow: 0 10px 30px rgba(0, 0, 0, 0.15);
+        }
+        .header {
+            text-align: center;
+            margin-bottom: 30px;
+            padding-bottom: 20px;
+            border-bottom: 2px solid #eee;
         }
         h1 {
-            text-align: center;
             color: #2c3e50;
-            margin-bottom: 30px;
+            margin-bottom: 10px;
+            font-size: 32px;
+        }
+        .description {
+            color: #7f8c8d;
+            font-size: 18px;
+            max-width: 700px;
+            margin: 0 auto;
         }
         .search-section {
             display: flex;
-            gap: 10px;
-            margin-bottom: 20px;
+            gap: 15px;
+            margin-bottom: 30px;
             flex-wrap: wrap;
+            justify-content: center;
+            background: #f8f9fa;
+            padding: 20px;
+            border-radius: 10px;
+        }
+        .search-box {
+            display: flex;
+            flex: 1;
+            min-width: 300px;
+            max-width: 500px;
+            position: relative;
         }
         input, select, button {
-            padding: 10px 15px;
+            padding: 14px 20px;
             border: 1px solid #ddd;
-            border-radius: 4px;
+            border-radius: 8px;
             font-size: 16px;
+            outline: none;
+            transition: all 0.3s;
         }
         input {
             flex: 1;
-            min-width: 200px;
+            padding-left: 45px;
+        }
+        input:focus {
+            border-color: #3498db;
+            box-shadow: 0 0 0 3px rgba(52, 152, 219, 0.2);
         }
         select {
-            width: 150px;
+            width: 180px;
+            background-color: white;
         }
         button {
-            background-color: #3498db;
+            background: linear-gradient(135deg, #3498db 0%, #2980b9 100%);
             color: white;
             border: none;
             cursor: pointer;
-            transition: background-color 0.3s;
+            font-weight: bold;
+            padding: 14px 25px;
         }
         button:hover {
-            background-color: #2980b9;
+            background: linear-gradient(135deg, #2980b9 0%, #3498db 100%);
+            transform: translateY(-2px);
+            box-shadow: 0 5px 15px rgba(0, 0, 0, 0.1);
+        }
+        .search-icon {
+            position: absolute;
+            left: 15px;
+            top: 50%;
+            transform: translateY(-50%);
+            color: #7f8c8d;
+            z-index: 1;
+        }
+        .controls {
+            display: flex;
+            gap: 15px;
+        }
+        .table-container {
+            overflow-x: auto;
+            border-radius: 10px;
+            box-shadow: 0 5px 15px rgba(0, 0, 0, 0.05);
         }
         table {
             width: 100%;
             border-collapse: collapse;
             margin-top: 20px;
+            min-width: 600px;
         }
         th, td {
-            padding: 12px 15px;
+            padding: 16px 20px;
             text-align: right;
-            border-bottom: 1px solid #ddd;
+            border-bottom: 1px solid #e0e0e0;
         }
         th {
-            background-color: #f2f2f2;
-            font-weight: bold;
+            background: linear-gradient(135deg, #2c3e50 0%, #34495e 100%);
+            color: white;
+            font-weight: 600;
+            position: sticky;
+            top: 0;
+        }
+        tr:nth-child(even) {
+            background-color: #f9f9f9;
         }
         tr:hover {
-            background-color: #f9f9f9;
+            background-color: #f1f8ff;
         }
         .loading {
             text-align: center;
-            padding: 20px;
-            font-size: 18px;
+            padding: 40px;
+            font-size: 20px;
+            color: #7f8c8d;
         }
         .error {
             color: #e74c3c;
             text-align: center;
-            padding: 10px;
+            padding: 20px;
+            background: #ffebee;
+            border-radius: 8px;
+            margin: 20px 0;
+            display: none;
+        }
+        .success {
+            color: #27ae60;
+            text-align: center;
+            padding: 15px;
+            background: #e8f5e9;
+            border-radius: 8px;
+            margin: 20px 0;
+            display: none;
+        }
+        .instructions {
+            background: #e3f2fd;
+            padding: 20px;
+            border-radius: 10px;
+            margin-top: 30px;
+        }
+        .instructions h3 {
+            color: #1565c0;
+            margin-top: 0;
+        }
+        .instructions ol {
+            padding-right: 20px;
+        }
+        .instructions li {
+            margin-bottom: 10px;
         }
         @media (max-width: 768px) {
             .search-section {
                 flex-direction: column;
             }
-            input, select, button {
+            .search-box, select, button {
                 width: 100%;
             }
+            .controls {
+                flex-direction: column;
+                width: 100%;
+            }
+        }
+        .footer {
+            text-align: center;
+            margin-top: 30px;
+            color: #7f8c8d;
+            font-size: 14px;
         }
     </style>
 </head>
 <body>
     <div class="container">
-        <h1>نظام إدارة الموظفين</h1>
-        
-        <div class="search-section">
-            <input type="text" id="searchInput" placeholder="ابحث بالاسم أو الرقم الوظيفي...">
-            <select id="searchType">
-                <option value="all">جميع البيانات</option>
-                <option value="name">الاسم</option>
-                <option value="id">الرقم الوظيفي</option>
-            </select>
-            <button id="searchBtn">بحث</button>
-            <button id="showAllBtn">عرض الكل</button>
+        <div class="header">
+            <h1><i class="fas fa-users"></i> نظام إدارة الموظفين</h1>
+            <p class="description">ابحث عن موظفيك باستخدام الاسم أو الرقم الوظيفي بسهولة وسرعة</p>
         </div>
         
-        <div id="loading" class="loading">جاري تحميل البيانات...</div>
-        <div id="error" class="error" style="display: none;"></div>
+        <div class="search-section">
+            <div class="search-box">
+                <i class="fas fa-search search-icon"></i>
+                <input type="text" id="searchInput" placeholder="ابحث بالاسم أو الرقم الوظيفي...">
+            </div>
+            <div class="controls">
+                <select id="searchType">
+                    <option value="all">عرض الكل</option>
+                    <option value="name">البحث بالاسم</option>
+                    <option value="id">البحث بالرقم الوظيفي</option>
+                </select>
+                <button id="searchBtn"><i class="fas fa-filter"></i> تصفية النتائج</button>
+            </div>
+        </div>
         
-        <table id="employeesTable" style="display: none;">
-            <thead>
-                <tr>
-                    <th>الرقم الوظيفي</th>
-                    <th>الاسم</th>
-                    <th>المهنة</th>
-                </tr>
-            </thead>
-            <tbody id="tableBody"></tbody>
-        </table>
+        <div id="loading" class="loading">
+            <i class="fas fa-spinner fa-spin"></i> جاري تحميل بيانات الموظفين...
+        </div>
+        <div id="error" class="error"></div>
+        <div id="success" class="success"></div>
+        
+        <div class="table-container">
+            <table id="employeesTable">
+                <thead>
+                    <tr>
+                        <th>الرقم الوظيفي</th>
+                        <th>الاسم</th>
+                        <th>المهنة</th>
+                    </tr>
+                </thead>
+                <tbody id="tableBody">
+                    <!-- البيانات سيتم إضافتها هنا عبر JavaScript -->
+                </tbody>
+            </table>
+        </div>
+
+        <div class="instructions">
+            <h3><i class="fas fa-info-circle"></i> تعليمات الاستخدام</h3>
+            <ol>
+                <li>استخدم حقل البحث للبحث بإسم الموظف أو رقمه الوظيفي</li>
+                <li>اختر نوع البحث من القائمة المنسدلة</li>
+                <li>انقر على زر "تصفية النتائج" لعرض النتائج</li>
+                <li>استخدم "عرض الكل" لإظهار جميع الموظفين</li>
+                <li>تأكد من أن الرابط الموجود في المتغير <code>SHEET_URL</code> يشير إلى بياناتك في Google Sheets</li>
+            </ol>
+        </div>
+
+        <div class="footer">
+            <p>تم التطوير باستخدام HTML و CSS و JavaScript - جميع الحقوق محفوظة © 2023</p>
+        </div>
     </div>
 
     <script>
@@ -133,71 +261,86 @@
             const searchInput = document.getElementById('searchInput');
             const searchType = document.getElementById('searchType');
             const searchBtn = document.getElementById('searchBtn');
-            const showAllBtn = document.getElementById('showAllBtn');
-            const table = document.getElementById('employeesTable');
             const tableBody = document.getElementById('tableBody');
             const loading = document.getElementById('loading');
             const errorDiv = document.getElementById('error');
+            const successDiv = document.getElementById('success');
+            const employeesTable = document.getElementById('employeesTable');
+
+            // إخفاء الجدول حتى يتم تحميل البيانات
+            employeesTable.style.display = 'none';
 
             // تحميل البيانات من Google Sheets
-            fetch(SHEET_URL)
-                .then(response => {
-                    if (!response.ok) {
-                        throw new Error('فشل في تحميل البيانات');
-                    }
-                    return response.text();
-                })
-                .then(csvData => {
-                    loading.style.display = 'none';
-                    employeesData = parseCSV(csvData);
-                    displayEmployees(employeesData);
-                })
-                .catch(error => {
-                    loading.style.display = 'none';
-                    errorDiv.textContent = 'حدث خطأ في تحميل البيانات: ' + error.message;
-                    errorDiv.style.display = 'block';
-                });
+            fetchSheetData();
 
             // إضافة مستمعي الأحداث
             searchBtn.addEventListener('click', searchEmployees);
-            showAllBtn.addEventListener('click', showAllEmployees);
             searchInput.addEventListener('keyup', function(event) {
                 if (event.key === 'Enter') {
                     searchEmployees();
                 }
             });
+            searchType.addEventListener('change', function() {
+                if (this.value === 'all') {
+                    displayEmployees(employeesData);
+                    searchInput.value = '';
+                }
+            });
 
+            // دالة جلب البيانات من Google Sheets
+            function fetchSheetData() {
+                loading.style.display = 'block';
+                errorDiv.style.display = 'none';
+                
+                fetch(SHEET_URL)
+                    .then(response => {
+                        if (!response.ok) {
+                            throw new Error('فشل في تحميل البيانات. تأكد من رابط Google Sheets.');
+                        }
+                        return response.text();
+                    })
+                    .then(csvData => {
+                        loading.style.display = 'none';
+                        employeesData = parseCSV(csvData);
+                        
+                        if (employeesData.length > 0) {
+                            displayEmployees(employeesData);
+                            successDiv.textContent = `تم تحميل بيانات ${employeesData.length} موظف بنجاح`;
+                            successDiv.style.display = 'block';
+                            employeesTable.style.display = 'table';
+                            
+                            // إخفاء رسالة النجاح بعد 3 ثوان
+                            setTimeout(() => {
+                                successDiv.style.display = 'none';
+                            }, 3000);
+                        } else {
+                            throw new Error('لا توجد بيانات في الجدول');
+                        }
+                    })
+                    .catch(error => {
+                        loading.style.display = 'none';
+                        errorDiv.textContent = error.message;
+                        errorDiv.style.display = 'block';
+                        employeesTable.style.display = 'none';
+                    });
+            }
+
+            // دالة تحويل بيانات CSV إلى مصفوفة من الكائنات
             function parseCSV(csv) {
                 const lines = csv.split('\n');
                 const result = [];
                 
-                // تخطي السطر الأول (العناوين)
+                // تجاهل الصف الأول (العناوين) والتحقق من وجود بيانات
                 for (let i = 1; i < lines.length; i++) {
                     const line = lines[i].trim();
                     if (line) {
-                        // تقسيم السطور مع مراعاة الفواصل داخل الأقواس
-                        const values = line.split(',').reduce((acc, cur) => {
-                            if (acc.isInQuote) {
-                                acc.current += ',' + cur;
-                                if (cur.endsWith('"')) {
-                                    acc.result.push(acc.current.replace(/^"|"$/g, ''));
-                                    acc.current = '';
-                                    acc.isInQuote = false;
-                                }
-                            } else if (cur.startsWith('"') && !cur.endsWith('"')) {
-                                acc.isInQuote = true;
-                                acc.current = cur;
-                            } else {
-                                acc.result.push(cur.replace(/^"|"$/g, ''));
-                            }
-                            return acc;
-                        }, { result: [], isInQuote: false, current: '' }).result;
+                        const values = parseCSVLine(line);
                         
                         if (values.length >= 3) {
                             result.push({
-                                name: values[0] || '',
-                                id: values[1] || '',
-                                job: values[2] || ''
+                                id: values[0] ? values[0].trim() : 'غير محدد',
+                                name: values[1] ? values[1].trim() : 'غير محدد',
+                                job: values[2] ? values[2].trim() : 'غير محدد'
                             });
                         }
                     }
@@ -205,18 +348,42 @@
                 return result;
             }
 
+            // دالة لتحليل سطر CSV مع التعامل مع الفواصل داخل القيم
+            function parseCSVLine(line) {
+                const values = [];
+                let inQuotes = false;
+                let currentValue = '';
+                
+                for (let i = 0; i < line.length; i++) {
+                    const char = line[i];
+                    
+                    if (char === '"') {
+                        inQuotes = !inQuotes;
+                    } else if (char === ',' && !inQuotes) {
+                        values.push(currentValue);
+                        currentValue = '';
+                    } else {
+                        currentValue += char;
+                    }
+                }
+                
+                values.push(currentValue);
+                return values;
+            }
+
+            // دالة عرض الموظفين في الجدول
             function displayEmployees(employees) {
                 tableBody.innerHTML = '';
                 
                 if (employees.length === 0) {
-                    errorDiv.textContent = 'لا توجد نتائج';
+                    errorDiv.textContent = 'لا توجد نتائج تطابق معايير البحث';
                     errorDiv.style.display = 'block';
-                    table.style.display = 'none';
+                    employeesTable.style.display = 'none';
                     return;
                 }
                 
                 errorDiv.style.display = 'none';
-                table.style.display = 'table';
+                employeesTable.style.display = 'table';
                 
                 employees.forEach(employee => {
                     const row = document.createElement('tr');
@@ -229,36 +396,37 @@
                 });
             }
 
+            // دالة البحث عن الموظفين
             function searchEmployees() {
                 const searchTerm = searchInput.value.trim().toLowerCase();
                 const type = searchType.value;
                 
-                if (!searchTerm && type !== 'all') {
+                if (type === 'all') {
+                    displayEmployees(employeesData);
+                    return;
+                }
+                
+                if (!searchTerm) {
                     errorDiv.textContent = 'يرجى إدخال نص للبحث';
                     errorDiv.style.display = 'block';
                     return;
                 }
                 
-                let filteredData = employeesData;
-                
-                if (type !== 'all' && searchTerm) {
-                    filteredData = employeesData.filter(employee => {
-                        if (type === 'name') {
-                            return employee.name.toLowerCase().includes(searchTerm);
-                        } else if (type === 'id') {
-                            return employee.id.toLowerCase().includes(searchTerm);
-                        }
-                        return true;
-                    });
-                }
+                let filteredData = employeesData.filter(employee => {
+                    if (type === 'name') {
+                        return employee.name.toLowerCase().includes(searchTerm);
+                    } else if (type === 'id') {
+                        return employee.id.toLowerCase().includes(searchTerm);
+                    }
+                    return true;
+                });
                 
                 displayEmployees(filteredData);
-            }
-
-            function showAllEmployees() {
-                searchInput.value = '';
-                searchType.value = 'all';
-                displayEmployees(employeesData);
+                
+                if (filteredData.length === 0) {
+                    errorDiv.textContent = 'لا توجد نتائج تطابق معايير البحث';
+                    errorDiv.style.display = 'block';
+                }
             }
         });
     </script>
