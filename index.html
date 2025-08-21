@@ -6,6 +6,7 @@
     <title>نظام إدارة الموظفين - متصل بـ Google Sheets</title>
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
     <style>
+        /* تحسينات على الأنيميشن والأداء */
         * {
             box-sizing: border-box;
             font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
@@ -24,6 +25,11 @@
             padding: 30px;
             border-radius: 15px;
             box-shadow: 0 10px 30px rgba(0, 0, 0, 0.15);
+            animation: fadeIn 0.5s ease-in-out;
+        }
+        @keyframes fadeIn {
+            from { opacity: 0; transform: translateY(20px); }
+            to { opacity: 1; transform: translateY(0); }
         }
         .header {
             text-align: center;
@@ -78,6 +84,7 @@
         select {
             width: 180px;
             background-color: white;
+            cursor: pointer;
         }
         button {
             background: linear-gradient(135deg, #3498db 0%, #2980b9 100%);
@@ -86,11 +93,17 @@
             cursor: pointer;
             font-weight: bold;
             padding: 14px 25px;
+            display: flex;
+            align-items: center;
+            gap: 8px;
         }
         button:hover {
             background: linear-gradient(135deg, #2980b9 0%, #3498db 100%);
             transform: translateY(-2px);
             box-shadow: 0 5px 15px rgba(0, 0, 0, 0.1);
+        }
+        button:active {
+            transform: translateY(0);
         }
         .search-icon {
             position: absolute;
@@ -108,6 +121,8 @@
             overflow-x: auto;
             border-radius: 10px;
             box-shadow: 0 5px 15px rgba(0, 0, 0, 0.05);
+            max-height: 500px;
+            overflow-y: auto;
         }
         table {
             width: 100%;
@@ -126,6 +141,15 @@
             font-weight: 600;
             position: sticky;
             top: 0;
+            cursor: pointer;
+            user-select: none;
+        }
+        th:hover {
+            background: linear-gradient(135deg, #34495e 0%, #2c3e50 100%);
+        }
+        th i {
+            margin-left: 5px;
+            font-size: 14px;
         }
         tr:nth-child(even) {
             background-color: #f9f9f9;
@@ -157,6 +181,23 @@
             margin: 20px 0;
             display: none;
         }
+        .pagination {
+            display: flex;
+            justify-content: center;
+            margin-top: 20px;
+            gap: 10px;
+        }
+        .pagination button {
+            padding: 10px 15px;
+            background: #f8f9fa;
+            color: #2c3e50;
+            border: 1px solid #ddd;
+        }
+        .pagination button.active {
+            background: #3498db;
+            color: white;
+            border-color: #3498db;
+        }
         .instructions {
             background: #e3f2fd;
             padding: 20px;
@@ -184,6 +225,9 @@
                 flex-direction: column;
                 width: 100%;
             }
+            .pagination {
+                flex-wrap: wrap;
+            }
         }
         .footer {
             text-align: center;
@@ -207,6 +251,21 @@
             border-radius: 3px;
             font-family: monospace;
         }
+        .export-btn {
+            background: linear-gradient(135deg, #27ae60 0%, #219653 100%);
+        }
+        .export-btn:hover {
+            background: linear-gradient(135deg, #219653 0%, #27ae60 100%);
+        }
+        .sort-icon {
+            transition: transform 0.3s;
+        }
+        .sort-asc .sort-icon {
+            transform: rotate(180deg);
+        }
+        .sort-desc .sort-icon {
+            transform: rotate(0deg);
+        }
     </style>
 </head>
 <body>
@@ -229,6 +288,7 @@
                 </select>
                 <button id="searchBtn"><i class="fas fa-filter"></i> تصفية النتائج</button>
                 <button id="refreshBtn"><i class="fas fa-sync-alt"></i> تحديث البيانات</button>
+                <button id="exportBtn" class="export-btn"><i class="fas fa-download"></i> تصدير البيانات</button>
             </div>
         </div>
         
@@ -242,15 +302,19 @@
             <table id="employeesTable">
                 <thead>
                     <tr>
-                        <th>الرقم الوظيفي</th>
-                        <th>الاسم</th>
-                        <th>المهنة</th>
+                        <th data-sort="id">الرقم الوظيفي <i class="fas fa-sort sort-icon"></i></th>
+                        <th data-sort="name">الاسم <i class="fas fa-sort sort-icon"></i></th>
+                        <th data-sort="job">المهنة <i class="fas fa-sort sort-icon"></i></th>
                     </tr>
                 </thead>
                 <tbody id="tableBody">
                     <!-- البيانات سيتم إضافتها هنا عبر JavaScript -->
                 </tbody>
             </table>
+        </div>
+
+        <div id="pagination" class="pagination">
+            <!-- أزرار الترقيم سيتم إضافتها هنا عبر JavaScript -->
         </div>
 
         <div class="sheet-config">
@@ -274,6 +338,8 @@
                 <li>انقر على زر "تصفية النتائج" لعرض النتائج</li>
                 <li>استخدم "عرض الكل" لإظهار جميع الموظفين</li>
                 <li>استخدم "تحديث البيانات" لجلب أحدث البيانات من Google Sheets</li>
+                <li>انقر على عناوين الأعمدة لترتيب البيانات</li>
+                <li>استخدم زر "تصدير البيانات" لتحميل البيانات كملف CSV</li>
             </ol>
         </div>
 
@@ -286,17 +352,23 @@
         // استبدل هذا الرابط برابط النشر الخاص بك من Google Sheets
         const SHEET_URL = "https://docs.google.com/spreadsheets/d/e/2PACX-1vRNUwlWyvA6ayiiNM63jo84YOtMzbk7vIumkSPNGbCg1OWPophMIjEcHHg1797a6uWrtuLdl45cTXkX/pub?output=csv";
         let employeesData = [];
+        let currentPage = 1;
+        const rowsPerPage = 10;
+        let currentSort = { column: null, direction: 'asc' };
 
         document.addEventListener('DOMContentLoaded', function() {
             const searchInput = document.getElementById('searchInput');
             const searchType = document.getElementById('searchType');
             const searchBtn = document.getElementById('searchBtn');
             const refreshBtn = document.getElementById('refreshBtn');
+            const exportBtn = document.getElementById('exportBtn');
             const tableBody = document.getElementById('tableBody');
             const loading = document.getElementById('loading');
             const errorDiv = document.getElementById('error');
             const successDiv = document.getElementById('success');
             const employeesTable = document.getElementById('employeesTable');
+            const paginationDiv = document.getElementById('pagination');
+            const tableHeaders = document.querySelectorAll('th[data-sort]');
 
             // إخفاء الجدول حتى يتم تحميل البيانات
             employeesTable.style.display = 'none';
@@ -307,23 +379,69 @@
             // إضافة مستمعي الأحداث
             searchBtn.addEventListener('click', searchEmployees);
             refreshBtn.addEventListener('click', fetchSheetData);
-            searchInput.addEventListener('keyup', function(event) {
-                if (event.key === 'Enter') {
-                    searchEmployees();
-                }
-            });
+            exportBtn.addEventListener('click', exportToCSV);
+            searchInput.addEventListener('keyup', debounce(function(event) {
+                searchEmployees();
+            }, 300));
+            
             searchType.addEventListener('change', function() {
                 if (this.value === 'all') {
                     displayEmployees(employeesData);
                     searchInput.value = '';
+                } else {
+                    searchEmployees();
                 }
             });
+
+            // إضافة مستمعي الأحداث لترتيب البيانات
+            tableHeaders.forEach(header => {
+                header.addEventListener('click', () => {
+                    const column = header.getAttribute('data-sort');
+                    sortData(column);
+                });
+            });
+
+            // دالة debounce لتحسين أداء البحث أثناء الكتابة
+            function debounce(func, wait) {
+                let timeout;
+                return function executedFunction(...args) {
+                    const later = () => {
+                        clearTimeout(timeout);
+                        func(...args);
+                    };
+                    clearTimeout(timeout);
+                    timeout = setTimeout(later, wait);
+                };
+            }
 
             // دالة جلب البيانات من Google Sheets
             function fetchSheetData() {
                 loading.style.display = 'block';
                 errorDiv.style.display = 'none';
                 successDiv.style.display = 'none';
+                
+                // محاولة جلب البيانات من التخزين المحلي أولاً
+                const cachedData = localStorage.getItem('employeesData');
+                const cachedTimestamp = localStorage.getItem('employeesDataTimestamp');
+                const isCacheValid = cachedTimestamp && (Date.now() - cachedTimestamp) < 300000; // 5 دقائق
+
+                if (cachedData && isCacheValid) {
+                    try {
+                        employeesData = JSON.parse(cachedData);
+                        displayEmployees(employeesData);
+                        loading.style.display = 'none';
+                        successDiv.textContent = `تم تحميل بيانات ${employeesData.length} موظف من الذاكرة المؤقتة`;
+                        successDiv.style.display = 'block';
+                        employeesTable.style.display = 'table';
+                        
+                        setTimeout(() => {
+                            successDiv.style.display = 'none';
+                        }, 3000);
+                        return;
+                    } catch (e) {
+                        console.error('Error parsing cached data', e);
+                    }
+                }
                 
                 fetch(SHEET_URL)
                     .then(response => {
@@ -335,6 +453,10 @@
                     .then(csvData => {
                         loading.style.display = 'none';
                         employeesData = parseCSV(csvData);
+                        
+                        // حفظ البيانات في التخزين المحلي
+                        localStorage.setItem('employeesData', JSON.stringify(employeesData));
+                        localStorage.setItem('employeesDataTimestamp', Date.now());
                         
                         if (employeesData.length > 0) {
                             displayEmployees(employeesData);
@@ -367,13 +489,14 @@
                 for (let i = 1; i < lines.length; i++) {
                     const line = lines[i].trim();
                     if (line) {
-                        const values = parseCSVLine(line);
+                        // استخدام regex لتحليل CSV بشكل أكثر دقة
+                        const values = line.split(/,(?=(?:(?:[^"]*"){2})*[^"]*$)/);
                         
                         if (values.length >= 3) {
                             result.push({
-                                id: values[0] ? values[0].trim() : 'غير محدد',
-                                name: values[1] ? values[1].trim() : 'غير محدد',
-                                job: values[2] ? values[2].trim() : 'غير محدد'
+                                id: values[0] ? values[0].trim().replace(/^"|"$/g, '') : 'غير محدد',
+                                name: values[1] ? values[1].trim().replace(/^"|"$/g, '') : 'غير محدد',
+                                job: values[2] ? values[2].trim().replace(/^"|"$/g, '') : 'غير محدد'
                             });
                         }
                     }
@@ -381,30 +504,7 @@
                 return result;
             }
 
-            // دالة لتحليل سطر CSV مع التعامل مع الفواصل داخل القيم
-            function parseCSVLine(line) {
-                const values = [];
-                let inQuotes = false;
-                let currentValue = '';
-                
-                for (let i = 0; i < line.length; i++) {
-                    const char = line[i];
-                    
-                    if (char === '"') {
-                        inQuotes = !inQuotes;
-                    } else if (char === ',' && !inQuotes) {
-                        values.push(currentValue);
-                        currentValue = '';
-                    } else {
-                        currentValue += char;
-                    }
-                }
-                
-                values.push(currentValue);
-                return values;
-            }
-
-            // دالة عرض الموظفين في الجدول
+            // دالة عرض الموظفين في الجدول مع الترقيم
             function displayEmployees(employees) {
                 tableBody.innerHTML = '';
                 
@@ -412,13 +512,22 @@
                     errorDiv.textContent = 'لا توجد نتائج تطابق معايير البحث';
                     errorDiv.style.display = 'block';
                     employeesTable.style.display = 'none';
+                    paginationDiv.innerHTML = '';
                     return;
                 }
                 
                 errorDiv.style.display = 'none';
                 employeesTable.style.display = 'table';
                 
-                employees.forEach(employee => {
+                // حساب عدد الصفحات
+                const totalPages = Math.ceil(employees.length / rowsPerPage);
+                
+                // عرض البيانات للصفحة الحالية
+                const start = (currentPage - 1) * rowsPerPage;
+                const end = start + rowsPerPage;
+                const paginatedItems = employees.slice(start, end);
+                
+                paginatedItems.forEach(employee => {
                     const row = document.createElement('tr');
                     row.innerHTML = `
                         <td>${employee.id}</td>
@@ -427,6 +536,52 @@
                     `;
                     tableBody.appendChild(row);
                 });
+                
+                // إنشاء أزرار الترقيم
+                setupPagination(employees.length, totalPages);
+            }
+            
+            // دالة إعداد الترقيم
+            function setupPagination(totalItems, totalPages) {
+                paginationDiv.innerHTML = '';
+                
+                if (totalPages <= 1) return;
+                
+                // زر الصفحة السابقة
+                const prevButton = document.createElement('button');
+                prevButton.innerHTML = '<i class="fas fa-chevron-right"></i>';
+                prevButton.addEventListener('click', () => {
+                    if (currentPage > 1) {
+                        currentPage--;
+                        displayEmployees(employeesData);
+                    }
+                });
+                paginationDiv.appendChild(prevButton);
+                
+                // أزرار الصفحات
+                for (let i = 1; i <= totalPages; i++) {
+                    const pageButton = document.createElement('button');
+                    pageButton.innerText = i;
+                    if (i === currentPage) {
+                        pageButton.classList.add('active');
+                    }
+                    pageButton.addEventListener('click', () => {
+                        currentPage = i;
+                        displayEmployees(employeesData);
+                    });
+                    paginationDiv.appendChild(pageButton);
+                }
+                
+                // زر الصفحة التالية
+                const nextButton = document.createElement('button');
+                nextButton.innerHTML = '<i class="fas fa-chevron-left"></i>';
+                nextButton.addEventListener('click', () => {
+                    if (currentPage < totalPages) {
+                        currentPage++;
+                        displayEmployees(employeesData);
+                    }
+                });
+                paginationDiv.appendChild(nextButton);
             }
 
             // دالة البحث عن الموظفين
@@ -435,13 +590,8 @@
                 const type = searchType.value;
                 
                 if (type === 'all') {
+                    currentPage = 1;
                     displayEmployees(employeesData);
-                    return;
-                }
-                
-                if (!searchTerm) {
-                    errorDiv.textContent = 'يرجى إدخال نص للبحث';
-                    errorDiv.style.display = 'block';
                     return;
                 }
                 
@@ -454,12 +604,78 @@
                     return true;
                 });
                 
+                currentPage = 1;
                 displayEmployees(filteredData);
                 
                 if (filteredData.length === 0) {
                     errorDiv.textContent = 'لا توجد نتائج تطابق معايير البحث';
                     errorDiv.style.display = 'block';
                 }
+            }
+            
+            // دالة ترتيب البيانات
+            function sortData(column) {
+                // تبديل اتجاه الترتيب إذا كان نفس العمود
+                if (currentSort.column === column) {
+                    currentSort.direction = currentSort.direction === 'asc' ? 'desc' : 'asc';
+                } else {
+                    currentSort.column = column;
+                    currentSort.direction = 'asc';
+                }
+                
+                // إعادة تعليمات الترتيب في واجهة المستخدم
+                tableHeaders.forEach(header => {
+                    header.classList.remove('sort-asc', 'sort-desc');
+                    if (header.getAttribute('data-sort') === column) {
+                        header.classList.add(currentSort.direction === 'asc' ? 'sort-asc' : 'sort-desc');
+                    }
+                });
+                
+                // ترتيب البيانات
+                employeesData.sort((a, b) => {
+                    let valueA = a[column];
+                    let valueB = b[column];
+                    
+                    // معالجة القيم النصية والرقمية
+                    if (!isNaN(valueA) && !isNaN(valueB)) {
+                        valueA = Number(valueA);
+                        valueB = Number(valueB);
+                    }
+                    
+                    if (valueA < valueB) {
+                        return currentSort.direction === 'asc' ? -1 : 1;
+                    }
+                    if (valueA > valueB) {
+                        return currentSort.direction === 'asc' ? 1 : -1;
+                    }
+                    return 0;
+                });
+                
+                // إعادة عرض البيانات
+                displayEmployees(employeesData);
+            }
+            
+            // دالة تصدير البيانات إلى CSV
+            function exportToCSV() {
+                const headers = ['الرقم الوظيفي', 'الاسم', 'المهنة'];
+                const data = employeesData.map(employee => [
+                    employee.id,
+                    employee.name,
+                    employee.job
+                ]);
+                
+                let csvContent = headers.join(',') + '\n';
+                data.forEach(row => {
+                    csvContent += row.map(field => `"${field}"`).join(',') + '\n';
+                });
+                
+                const encodedUri = encodeURI('data:text/csv;charset=utf-8,' + csvContent);
+                const link = document.createElement('a');
+                link.setAttribute('href', encodedUri);
+                link.setAttribute('download', 'الموظفين.csv');
+                document.body.appendChild(link);
+                link.click();
+                document.body.removeChild(link);
             }
         });
     </script>
