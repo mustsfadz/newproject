@@ -1,56 +1,266 @@
 <!DOCTYPE html>
 <html lang="ar" dir="rtl">
 <head>
-  <meta charset="UTF-8">
-  <meta name="viewport" content="width=device-width, initial-scale=1">
-  <title>استعلام الموظفين</title>
-  <style>
-    body { font-family: 'Cairo', sans-serif; text-align: center; padding: 20px; background: #f4f6f9; }
-    h1 { color: #333; }
-    input { padding: 10px; width: 250px; border: 1px solid #ccc; border-radius: 8px; }
-    button { padding: 10px 20px; margin-top: 10px; border: none; background: #007bff; color: white; border-radius: 8px; cursor: pointer; }
-    button:hover { background: #0056b3; }
-    .result { margin-top: 20px; background: white; padding: 15px; border-radius: 10px; box-shadow: 0 2px 5px rgba(0,0,0,0.1); display: inline-block; text-align: right; min-width: 280px; }
-    .error { color: red; }
-  </style>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>نظام إدارة الموظفين</title>
+    <style>
+        * {
+            box-sizing: border-box;
+            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+        }
+        body {
+            margin: 0;
+            padding: 20px;
+            background-color: #f5f5f5;
+            color: #333;
+        }
+        .container {
+            max-width: 1000px;
+            margin: 0 auto;
+            background: white;
+            padding: 20px;
+            border-radius: 8px;
+            box-shadow: 0 2px 10px rgba(0, 0, 0, 0.1);
+        }
+        h1 {
+            text-align: center;
+            color: #2c3e50;
+            margin-bottom: 30px;
+        }
+        .search-section {
+            display: flex;
+            gap: 10px;
+            margin-bottom: 20px;
+            flex-wrap: wrap;
+        }
+        input, select, button {
+            padding: 10px 15px;
+            border: 1px solid #ddd;
+            border-radius: 4px;
+            font-size: 16px;
+        }
+        input {
+            flex: 1;
+            min-width: 200px;
+        }
+        select {
+            width: 150px;
+        }
+        button {
+            background-color: #3498db;
+            color: white;
+            border: none;
+            cursor: pointer;
+            transition: background-color 0.3s;
+        }
+        button:hover {
+            background-color: #2980b9;
+        }
+        table {
+            width: 100%;
+            border-collapse: collapse;
+            margin-top: 20px;
+        }
+        th, td {
+            padding: 12px 15px;
+            text-align: right;
+            border-bottom: 1px solid #ddd;
+        }
+        th {
+            background-color: #f2f2f2;
+            font-weight: bold;
+        }
+        tr:hover {
+            background-color: #f9f9f9;
+        }
+        .loading {
+            text-align: center;
+            padding: 20px;
+            font-size: 18px;
+        }
+        .error {
+            color: #e74c3c;
+            text-align: center;
+            padding: 10px;
+        }
+        @media (max-width: 768px) {
+            .search-section {
+                flex-direction: column;
+            }
+            input, select, button {
+                width: 100%;
+            }
+        }
+    </style>
 </head>
 <body>
-  <h1>🔎 استعلام بيانات الموظف</h1>
-  <input type="text" id="searchInput" placeholder="ادخل الرقم الوظيفي أو الاسم">
-  <br>
-  <button onclick="searchEmployee()">بحث</button>
+    <div class="container">
+        <h1>نظام إدارة الموظفين</h1>
+        
+        <div class="search-section">
+            <input type="text" id="searchInput" placeholder="ابحث بالاسم أو الرقم الوظيفي...">
+            <select id="searchType">
+                <option value="all">جميع البيانات</option>
+                <option value="name">الاسم</option>
+                <option value="id">الرقم الوظيفي</option>
+            </select>
+            <button id="searchBtn">بحث</button>
+            <button id="showAllBtn">عرض الكل</button>
+        </div>
+        
+        <div id="loading" class="loading">جاري تحميل البيانات...</div>
+        <div id="error" class="error" style="display: none;"></div>
+        
+        <table id="employeesTable" style="display: none;">
+            <thead>
+                <tr>
+                    <th>الرقم الوظيفي</th>
+                    <th>الاسم</th>
+                    <th>المهنة</th>
+                </tr>
+            </thead>
+            <tbody id="tableBody"></tbody>
+        </table>
+    </div>
 
-  <div id="result" class="result"></div>
+    <script>
+        // استبدل هذا الرابط برابط النشر الخاص بك من Google Sheets
+        const SHEET_URL = "https://docs.google.com/spreadsheets/d/XXXXXXXXXX/export?format=csv";
+        let employeesData = [];
 
-  <script>
-    async function searchEmployee() {
-      const query = document.getElementById('searchInput').value.trim();
-      if (!query) {
-        document.getElementById('result').innerHTML = "<p class='error'>⚠️ الرجاء إدخال رقم وظيفي أو اسم.</p>";
-        return;
-      }
+        document.addEventListener('DOMContentLoaded', function() {
+            const searchInput = document.getElementById('searchInput');
+            const searchType = document.getElementById('searchType');
+            const searchBtn = document.getElementById('searchBtn');
+            const showAllBtn = document.getElementById('showAllBtn');
+            const table = document.getElementById('employeesTable');
+            const tableBody = document.getElementById('tableBody');
+            const loading = document.getElementById('loading');
+            const errorDiv = document.getElementById('error');
 
-      try {
-        const response = await fetch("https://script.google.com/macros/s/AKfycbxBwvFhfkUFEEovrdRNB2HsXAcd8nv2JylW1qbvvrBK3_aMUcglJsGYUY0G_skheTBjGA/exec?q=" + encodeURIComponent(query));
-        const data = await response.json();
+            // تحميل البيانات من Google Sheets
+            fetch(SHEET_URL)
+                .then(response => {
+                    if (!response.ok) {
+                        throw new Error('فشل في تحميل البيانات');
+                    }
+                    return response.text();
+                })
+                .then(csvData => {
+                    loading.style.display = 'none';
+                    employeesData = parseCSV(csvData);
+                    displayEmployees(employeesData);
+                })
+                .catch(error => {
+                    loading.style.display = 'none';
+                    errorDiv.textContent = 'حدث خطأ في تحميل البيانات: ' + error.message;
+                    errorDiv.style.display = 'block';
+                });
 
-        if (data.length > 0) {
-          let output = "<h3>نتائج البحث:</h3>";
-          data.forEach(emp => {
-            output += `
-              <p><b>الرقم الوظيفي:</b> ${emp.رقم_وظيفي}</p>
-              <p><b>الاسم:</b> ${emp.الاسم}</p>
-              <p><b>المهنة:</b> ${emp.المهنة}</p>
-              <hr>`;
-          });
-          document.getElementById('result').innerHTML = output;
-        } else {
-          document.getElementById('result').innerHTML = "<p class='error'>❌ لا توجد نتائج مطابقة.</p>";
-        }
-      } catch (error) {
-        document.getElementById('result').innerHTML = "<p class='error'>⚠️ حدث خطأ أثناء جلب البيانات.</p>";
-      }
-    }
-  </script>
+            // إضافة مستمعي الأحداث
+            searchBtn.addEventListener('click', searchEmployees);
+            showAllBtn.addEventListener('click', showAllEmployees);
+            searchInput.addEventListener('keyup', function(event) {
+                if (event.key === 'Enter') {
+                    searchEmployees();
+                }
+            });
+
+            function parseCSV(csv) {
+                const lines = csv.split('\n');
+                const result = [];
+                
+                // تخطي السطر الأول (العناوين)
+                for (let i = 1; i < lines.length; i++) {
+                    const line = lines[i].trim();
+                    if (line) {
+                        // تقسيم السطور مع مراعاة الفواصل داخل الأقواس
+                        const values = line.split(',').reduce((acc, cur) => {
+                            if (acc.isInQuote) {
+                                acc.current += ',' + cur;
+                                if (cur.endsWith('"')) {
+                                    acc.result.push(acc.current.replace(/^"|"$/g, ''));
+                                    acc.current = '';
+                                    acc.isInQuote = false;
+                                }
+                            } else if (cur.startsWith('"') && !cur.endsWith('"')) {
+                                acc.isInQuote = true;
+                                acc.current = cur;
+                            } else {
+                                acc.result.push(cur.replace(/^"|"$/g, ''));
+                            }
+                            return acc;
+                        }, { result: [], isInQuote: false, current: '' }).result;
+                        
+                        if (values.length >= 3) {
+                            result.push({
+                                name: values[0] || '',
+                                id: values[1] || '',
+                                job: values[2] || ''
+                            });
+                        }
+                    }
+                }
+                return result;
+            }
+
+            function displayEmployees(employees) {
+                tableBody.innerHTML = '';
+                
+                if (employees.length === 0) {
+                    errorDiv.textContent = 'لا توجد نتائج';
+                    errorDiv.style.display = 'block';
+                    table.style.display = 'none';
+                    return;
+                }
+                
+                errorDiv.style.display = 'none';
+                table.style.display = 'table';
+                
+                employees.forEach(employee => {
+                    const row = document.createElement('tr');
+                    row.innerHTML = `
+                        <td>${employee.id}</td>
+                        <td>${employee.name}</td>
+                        <td>${employee.job}</td>
+                    `;
+                    tableBody.appendChild(row);
+                });
+            }
+
+            function searchEmployees() {
+                const searchTerm = searchInput.value.trim().toLowerCase();
+                const type = searchType.value;
+                
+                if (!searchTerm && type !== 'all') {
+                    errorDiv.textContent = 'يرجى إدخال نص للبحث';
+                    errorDiv.style.display = 'block';
+                    return;
+                }
+                
+                let filteredData = employeesData;
+                
+                if (type !== 'all' && searchTerm) {
+                    filteredData = employeesData.filter(employee => {
+                        if (type === 'name') {
+                            return employee.name.toLowerCase().includes(searchTerm);
+                        } else if (type === 'id') {
+                            return employee.id.toLowerCase().includes(searchTerm);
+                        }
+                        return true;
+                    });
+                }
+                
+                displayEmployees(filteredData);
+            }
+
+            function showAllEmployees() {
+                searchInput.value = '';
+                searchType.value = 'all';
+                displayEmployees(employeesData);
+            }
+        });
+    </script>
 </body>
 </html>
