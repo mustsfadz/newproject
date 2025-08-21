@@ -6,7 +6,6 @@
     <title>نظام إدارة الموظفين - متصل بـ Google Sheets</title>
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
     <style>
-        /* تحسينات على الأنيميشن والأداء */
         * {
             box-sizing: border-box;
             font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
@@ -25,11 +24,6 @@
             padding: 30px;
             border-radius: 15px;
             box-shadow: 0 10px 30px rgba(0, 0, 0, 0.15);
-            animation: fadeIn 0.5s ease-in-out;
-        }
-        @keyframes fadeIn {
-            from { opacity: 0; transform: translateY(20px); }
-            to { opacity: 1; transform: translateY(0); }
         }
         .header {
             text-align: center;
@@ -181,38 +175,55 @@
             margin: 20px 0;
             display: none;
         }
-        .pagination {
-            display: flex;
-            justify-content: center;
-            margin-top: 20px;
-            gap: 10px;
-        }
-        .pagination button {
-            padding: 10px 15px;
-            background: #f8f9fa;
-            color: #2c3e50;
-            border: 1px solid #ddd;
-        }
-        .pagination button.active {
-            background: #3498db;
-            color: white;
-            border-color: #3498db;
-        }
         .instructions {
             background: #e3f2fd;
             padding: 20px;
             border-radius: 10px;
             margin-top: 30px;
+            display: none; /* إخفاء التعليمات */
         }
-        .instructions h3 {
-            color: #1565c0;
-            margin-top: 0;
+        .stats-container {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(250px, 1fr));
+            gap: 20px;
+            margin-top: 30px;
         }
-        .instructions ol {
-            padding-right: 20px;
+        .stat-card {
+            background: white;
+            padding: 20px;
+            border-radius: 10px;
+            box-shadow: 0 5px 15px rgba(0, 0, 0, 0.05);
+            text-align: center;
+            border-top: 4px solid #3498db;
         }
-        .instructions li {
-            margin-bottom: 10px;
+        .stat-card:nth-child(2) {
+            border-top-color: #2ecc71;
+        }
+        .stat-card:nth-child(3) {
+            border-top-color: #e74c3c;
+        }
+        .stat-card:nth-child(4) {
+            border-top-color: #f39c12;
+        }
+        .stat-value {
+            font-size: 32px;
+            font-weight: bold;
+            color: #2c3e50;
+            margin: 10px 0;
+        }
+        .stat-label {
+            color: #7f8c8d;
+            font-size: 16px;
+        }
+        .job-stats {
+            margin-top: 15px;
+            text-align: right;
+        }
+        .job-stat-item {
+            display: flex;
+            justify-content: space-between;
+            padding: 8px 0;
+            border-bottom: 1px dashed #eee;
         }
         @media (max-width: 768px) {
             .search-section {
@@ -225,8 +236,8 @@
                 flex-direction: column;
                 width: 100%;
             }
-            .pagination {
-                flex-wrap: wrap;
+            .stats-container {
+                grid-template-columns: 1fr;
             }
         }
         .footer {
@@ -298,6 +309,31 @@
         <div id="error" class="error"></div>
         <div id="success" class="success"></div>
         
+        <!-- إحصائيات الموظفين -->
+        <div class="stats-container" id="statsContainer">
+            <div class="stat-card">
+                <div class="stat-label">إجمالي الموظفين</div>
+                <div class="stat-value" id="totalEmployees">0</div>
+                <div class="job-stats" id="commonJobs"></div>
+            </div>
+            <div class="stat-card">
+                <div class="stat-label">أكثر المهن تواجداً</div>
+                <div class="stat-value" id="topJob">-</div>
+                <div class="stat-label" id="topJobCount">0 موظف</div>
+            </div>
+            <div class="stat-card">
+                <div class="stat-label">أقسام الموظفين</div>
+                <div class="stat-value" id="uniqueJobs">0</div>
+                <div class="stat-label">قسم مختلف</div>
+            </div>
+            <div class="stat-card">
+                <div class="stat-label">توزيع المهن</div>
+                <div id="jobDistribution">
+                    <!-- سيتم ملؤها بالبيانات -->
+                </div>
+            </div>
+        </div>
+        
         <div class="table-container">
             <table id="employeesTable">
                 <thead>
@@ -313,10 +349,6 @@
             </table>
         </div>
 
-        <div id="pagination" class="pagination">
-            <!-- أزرار الترقيم سيتم إضافتها هنا عبر JavaScript -->
-        </div>
-
         <div class="sheet-config">
             <h3><i class="fas fa-database"></i> إعدادات الربط مع Google Sheets</h3>
             <p>لربط هذا الموقع مع Google Sheets، اتبع الخطوات التالية:</p>
@@ -330,19 +362,6 @@
             </ol>
         </div>
 
-        <div class="instructions">
-            <h3><i class="fas fa-info-circle"></i> تعليمات الاستخدام</h3>
-            <ol>
-                <li>استخدم حقل البحث للبحث بإسم الموظف أو رقمه الوظيفي</li>
-                <li>اختر نوع البحث من القائمة المنسدلة</li>
-                <li>انقر على زر "تصفية النتائج" لعرض النتائج</li>
-                <li>استخدم "عرض الكل" لإظهار جميع الموظفين</li>
-                <li>استخدم "تحديث البيانات" لجلب أحدث البيانات من Google Sheets</li>
-                <li>انقر على عناوين الأعمدة لترتيب البيانات</li>
-                <li>استخدم زر "تصدير البيانات" لتحميل البيانات كملف CSV</li>
-            </ol>
-        </div>
-
         <div class="footer">
             <p>تم التطوير باستخدام HTML و CSS و JavaScript - جميع الحقوق محفوظة © 2023</p>
         </div>
@@ -352,8 +371,6 @@
         // استبدل هذا الرابط برابط النشر الخاص بك من Google Sheets
         const SHEET_URL = "https://docs.google.com/spreadsheets/d/e/2PACX-1vRNUwlWyvA6ayiiNM63jo84YOtMzbk7vIumkSPNGbCg1OWPophMIjEcHHg1797a6uWrtuLdl45cTXkX/pub?output=csv";
         let employeesData = [];
-        let currentPage = 1;
-        const rowsPerPage = 10;
         let currentSort = { column: null, direction: 'asc' };
 
         document.addEventListener('DOMContentLoaded', function() {
@@ -367,8 +384,15 @@
             const errorDiv = document.getElementById('error');
             const successDiv = document.getElementById('success');
             const employeesTable = document.getElementById('employeesTable');
-            const paginationDiv = document.getElementById('pagination');
             const tableHeaders = document.querySelectorAll('th[data-sort]');
+            
+            // عناصر الإحصائيات
+            const totalEmployees = document.getElementById('totalEmployees');
+            const commonJobs = document.getElementById('commonJobs');
+            const topJob = document.getElementById('topJob');
+            const topJobCount = document.getElementById('topJobCount');
+            const uniqueJobs = document.getElementById('uniqueJobs');
+            const jobDistribution = document.getElementById('jobDistribution');
 
             // إخفاء الجدول حتى يتم تحميل البيانات
             employeesTable.style.display = 'none';
@@ -429,6 +453,7 @@
                     try {
                         employeesData = JSON.parse(cachedData);
                         displayEmployees(employeesData);
+                        updateStatistics(employeesData);
                         loading.style.display = 'none';
                         successDiv.textContent = `تم تحميل بيانات ${employeesData.length} موظف من الذاكرة المؤقتة`;
                         successDiv.style.display = 'block';
@@ -460,6 +485,7 @@
                         
                         if (employeesData.length > 0) {
                             displayEmployees(employeesData);
+                            updateStatistics(employeesData);
                             successDiv.textContent = `تم تحميل بيانات ${employeesData.length} موظف بنجاح`;
                             successDiv.style.display = 'block';
                             employeesTable.style.display = 'table';
@@ -504,7 +530,7 @@
                 return result;
             }
 
-            // دالة عرض الموظفين في الجدول مع الترقيم
+            // دالة عرض الموظفين في الجدول
             function displayEmployees(employees) {
                 tableBody.innerHTML = '';
                 
@@ -512,22 +538,13 @@
                     errorDiv.textContent = 'لا توجد نتائج تطابق معايير البحث';
                     errorDiv.style.display = 'block';
                     employeesTable.style.display = 'none';
-                    paginationDiv.innerHTML = '';
                     return;
                 }
                 
                 errorDiv.style.display = 'none';
                 employeesTable.style.display = 'table';
                 
-                // حساب عدد الصفحات
-                const totalPages = Math.ceil(employees.length / rowsPerPage);
-                
-                // عرض البيانات للصفحة الحالية
-                const start = (currentPage - 1) * rowsPerPage;
-                const end = start + rowsPerPage;
-                const paginatedItems = employees.slice(start, end);
-                
-                paginatedItems.forEach(employee => {
+                employees.forEach(employee => {
                     const row = document.createElement('tr');
                     row.innerHTML = `
                         <td>${employee.id}</td>
@@ -536,52 +553,65 @@
                     `;
                     tableBody.appendChild(row);
                 });
-                
-                // إنشاء أزرار الترقيم
-                setupPagination(employees.length, totalPages);
             }
             
-            // دالة إعداد الترقيم
-            function setupPagination(totalItems, totalPages) {
-                paginationDiv.innerHTML = '';
+            // دالة تحديث الإحصائيات
+            function updateStatistics(employees) {
+                // إجمالي الموظفين
+                totalEmployees.textContent = employees.length;
                 
-                if (totalPages <= 1) return;
+                // عدد المهن الفريدة
+                const uniqueJobsSet = new Set(employees.map(emp => emp.job));
+                uniqueJobs.textContent = uniqueJobsSet.size;
                 
-                // زر الصفحة السابقة
-                const prevButton = document.createElement('button');
-                prevButton.innerHTML = '<i class="fas fa-chevron-right"></i>';
-                prevButton.addEventListener('click', () => {
-                    if (currentPage > 1) {
-                        currentPage--;
-                        displayEmployees(employeesData);
-                    }
+                // إحصائيات المهن
+                const jobCounts = {};
+                employees.forEach(emp => {
+                    jobCounts[emp.job] = (jobCounts[emp.job] || 0) + 1;
                 });
-                paginationDiv.appendChild(prevButton);
                 
-                // أزرار الصفحات
-                for (let i = 1; i <= totalPages; i++) {
-                    const pageButton = document.createElement('button');
-                    pageButton.innerText = i;
-                    if (i === currentPage) {
-                        pageButton.classList.add('active');
+                // أكثر المهن تواجداً
+                let maxJob = '';
+                let maxCount = 0;
+                
+                for (const job in jobCounts) {
+                    if (jobCounts[job] > maxCount) {
+                        maxCount = jobCounts[job];
+                        maxJob = job;
                     }
-                    pageButton.addEventListener('click', () => {
-                        currentPage = i;
-                        displayEmployees(employeesData);
-                    });
-                    paginationDiv.appendChild(pageButton);
                 }
                 
-                // زر الصفحة التالية
-                const nextButton = document.createElement('button');
-                nextButton.innerHTML = '<i class="fas fa-chevron-left"></i>';
-                nextButton.addEventListener('click', () => {
-                    if (currentPage < totalPages) {
-                        currentPage++;
-                        displayEmployees(employeesData);
-                    }
+                topJob.textContent = maxJob;
+                topJobCount.textContent = `${maxCount} موظف`;
+                
+                // عرض توزيع المهن
+                jobDistribution.innerHTML = '';
+                for (const job in jobCounts) {
+                    const percentage = ((jobCounts[job] / employees.length) * 100).toFixed(1);
+                    const statItem = document.createElement('div');
+                    statItem.className = 'job-stat-item';
+                    statItem.innerHTML = `
+                        <span>${job}</span>
+                        <span>${jobCounts[job]} (${percentage}%)</span>
+                    `;
+                    jobDistribution.appendChild(statItem);
+                }
+                
+                // المهن الشائعة
+                commonJobs.innerHTML = '';
+                const sortedJobs = Object.entries(jobCounts)
+                    .sort((a, b) => b[1] - a[1])
+                    .slice(0, 3);
+                
+                sortedJobs.forEach(([job, count]) => {
+                    const jobElement = document.createElement('div');
+                    jobElement.className = 'job-stat-item';
+                    jobElement.innerHTML = `
+                        <span>${job}</span>
+                        <span>${count}</span>
+                    `;
+                    commonJobs.appendChild(jobElement);
                 });
-                paginationDiv.appendChild(nextButton);
             }
 
             // دالة البحث عن الموظفين
@@ -590,8 +620,8 @@
                 const type = searchType.value;
                 
                 if (type === 'all') {
-                    currentPage = 1;
                     displayEmployees(employeesData);
+                    updateStatistics(employeesData);
                     return;
                 }
                 
@@ -604,8 +634,8 @@
                     return true;
                 });
                 
-                currentPage = 1;
                 displayEmployees(filteredData);
+                updateStatistics(filteredData);
                 
                 if (filteredData.length === 0) {
                     errorDiv.textContent = 'لا توجد نتائج تطابق معايير البحث';
