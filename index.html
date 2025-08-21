@@ -488,6 +488,32 @@
       color: var(--muted);
       font-size: 15px;
     }
+    
+    /* التبديل بين الوطنيين والأجانب */
+    .employee-type-toggle {
+      display: flex;
+      background: var(--border);
+      border-radius: 10px;
+      padding: 4px;
+      margin-bottom: 16px;
+    }
+
+    .employee-type-btn {
+      padding: 8px 16px;
+      border-radius: 8px;
+      cursor: pointer;
+      font-weight: 600;
+      transition: var(--transition);
+      border: none;
+      background: transparent;
+      flex: 1;
+    }
+
+    .employee-type-btn.active {
+      background: var(--accent);
+      color: white;
+      box-shadow: 0 2px 8px rgba(11, 114, 212, 0.2);
+    }
   </style>
 </head>
 <body>
@@ -512,6 +538,12 @@
           <i class="fas fa-cog"></i>
         </button>
       </div>
+    </div>
+
+    <!-- التبديل بين الوطنيين والأجانب -->
+    <div class="employee-type-toggle">
+      <button id="localBtn" class="employee-type-btn active" data-type="local">الموظفون الوطنيون</button>
+      <button id="foreignBtn" class="employee-type-btn" data-type="foreign">الموظفون الأجانب</button>
     </div>
 
     <div class="stats-grid">
@@ -610,8 +642,11 @@
   </div>
 
   <script>
-    // رابط Google Sheets المنشور كـ CSV (عام)
-    const SHEET_URL = "https://docs.google.com/spreadsheets/d/e/2PACX-1vRNUwlWyvA6ayiiNM63jo84YOtMzbk7vIumkSPNGbCg1OWPophMIjEcHHg1797a6uWrtuLdl45cTXkX/pub?output=csv";
+    // روابط Google Sheets للموظفين الوطنيين والأجانب
+    const SHEET_URLS = {
+      local: "https://docs.google.com/spreadsheets/d/e/2PACX-1vRNUwlWyvA6ayiiNM63jo84YOtMzbk7vIumkSPNGbCg1OWPophMIjEcHHg1797a6uWrtuLdl45cTXkX/pub?output=csv",
+      foreign: "https://docs.google.com/spreadsheets/d/e/2PACX-1vRNUwlWyvA6ayiiNM63jo84YOtMzbk7vIumkSPNGbCg1OWPophMIjEcHHg1797a6uWrtuLdl45cTXkX/pub?output=csv" // سيتم استبداله بالرابط الفعلي
+    };
 
     // بدائل تجاوز CORS عند الفشل
     const CORS_PROXIES = [
@@ -642,17 +677,27 @@
     const employeesChangeEl = document.getElementById('employeesChange');
     const sortAscBtn = document.getElementById('sortAsc');
     const sortDescBtn = document.getElementById('sortDesc');
+    const localBtn = document.getElementById('localBtn');
+    const foreignBtn = document.getElementById('foreignBtn');
 
     let employeesData = [];
     let lastEmployeeCount = 0;
     let currentSort = { column: 'id', direction: 'asc' };
     let isLoading = false;
+    let currentEmployeeType = 'local'; // القيمة الافتراضية
 
     // تهيئة التطبيق
     function initApp() {
+      // تحميل نوع الموظفين المحدد من التخزين المحلي
+      const savedType = localStorage.getItem('employeeType');
+      if (savedType) {
+        currentEmployeeType = savedType;
+        updateEmployeeTypeUI();
+      }
+      
       // تحميل البيانات من التخزين المحلي إذا كانت موجودة
-      const savedData = localStorage.getItem('employeesData');
-      const savedTime = localStorage.getItem('lastUpdated');
+      const savedData = localStorage.getItem(`employeesData_${currentEmployeeType}`);
+      const savedTime = localStorage.getItem(`lastUpdated_${currentEmployeeType}`);
       
       if (savedData && savedTime) {
         try {
@@ -663,8 +708,8 @@
           showMsg('تم تحميل البيانات من الذاكرة المؤقتة', 'success');
         } catch (e) {
           console.error('Error loading cached data:', e);
-          localStorage.removeItem('employeesData');
-          localStorage.removeItem('lastUpdated');
+          localStorage.removeItem(`employeesData_${currentEmployeeType}`);
+          localStorage.removeItem(`lastUpdated_${currentEmployeeType}`);
           fetchSheet();
         }
       } else {
@@ -673,6 +718,17 @@
       
       // إضافة event listeners
       setupEventListeners();
+    }
+
+    // تحديث واجهة نوع الموظفين
+    function updateEmployeeTypeUI() {
+      if (currentEmployeeType === 'local') {
+        localBtn.classList.add('active');
+        foreignBtn.classList.remove('active');
+      } else {
+        localBtn.classList.remove('active');
+        foreignBtn.classList.add('active');
+      }
     }
 
     // إعداد مستمعي الأحداث
@@ -693,6 +749,40 @@
           sortTable(column, currentSort.column === column && currentSort.direction === 'asc' ? 'desc' : 'asc');
         });
       });
+      
+      // إضافة مستمعي الأحداث للتبديل بين الوطنيين والأجانب
+      localBtn.addEventListener('click', () => switchEmployeeType('local'));
+      foreignBtn.addEventListener('click', () => switchEmployeeType('foreign'));
+    }
+
+    // التبديل بين نوعي الموظفين
+    function switchEmployeeType(type) {
+      if (currentEmployeeType === type) return;
+      
+      currentEmployeeType = type;
+      localStorage.setItem('employeeType', type);
+      updateEmployeeTypeUI();
+      
+      // تحميل البيانات من التخزين المحلي إذا كانت موجودة
+      const savedData = localStorage.getItem(`employeesData_${currentEmployeeType}`);
+      const savedTime = localStorage.getItem(`lastUpdated_${currentEmployeeType}`);
+      
+      if (savedData && savedTime) {
+        try {
+          employeesData = JSON.parse(savedData);
+          renderTable(employeesData);
+          updateTotal(employeesData.length);
+          setStatus(new Date(parseInt(savedTime)).toLocaleString('ar-EG'), 'التخزين المحلي');
+          showMsg(`تم تحميل بيانات ${type === 'local' ? 'الموظفين الوطنيين' : 'الموظفين الأجانب'} من الذاكرة المؤقتة`, 'success');
+        } catch (e) {
+          console.error('Error loading cached data:', e);
+          localStorage.removeItem(`employeesData_${currentEmployeeType}`);
+          localStorage.removeItem(`lastUpdated_${currentEmployeeType}`);
+          fetchSheet();
+        }
+      } else {
+        fetchSheet();
+      }
     }
 
     // عرض الرسائل
@@ -767,24 +857,24 @@
       refreshBtn.innerHTML = '<div class="loader"></div> جاري التحميل...';
       refreshBtn.disabled = true;
       
-      showMsg('جاري تحميل البيانات من الخادم...', 'success');
+      showMsg(`جاري تحميل بيانات ${currentEmployeeType === 'local' ? 'الموظفين الوطنيين' : 'الموظفين الأجانب'} من الخادم...`, 'success');
       setStatus('—', '—');
       
       try {
-        const { text: csv, source } = await fetchCSVWithFallback(SHEET_URL);
+        const { text: csv, source } = await fetchCSVWithFallback(SHEET_URLS[currentEmployeeType]);
         const parsedData = parseCSV(csv);
         
         if (parsedData.length === 0) {
           showMsg('لا توجد بيانات في الجدول أو تعذّر قراءتها', 'error');
           // استخدام بيانات تجريبية كاحتياطي
-          employeesData = demoData();
+          employeesData = demoData(currentEmployeeType);
         } else {
           employeesData = parsedData;
         }
         
         // حفظ البيانات محلياً
-        localStorage.setItem('employeesData', JSON.stringify(employeesData));
-        localStorage.setItem('lastUpdated', Date.now().toString());
+        localStorage.setItem(`employeesData_${currentEmployeeType}`, JSON.stringify(employeesData));
+        localStorage.setItem(`lastUpdated_${currentEmployeeType}`, Date.now().toString());
         
         renderTable(employeesData);
         updateTotal(employeesData.length);
@@ -799,7 +889,7 @@
         showMsg(err.message || 'خطأ أثناء تحميل الجدول', 'error');
         
         // استخدام بيانات تجريبية كخطة طوارئ
-        employeesData = demoData();
+        employeesData = demoData(currentEmployeeType);
         renderTable(employeesData);
         updateTotal(employeesData.length);
         setStatus(nowString(), 'بيانات تجريبية');
@@ -837,7 +927,7 @@
       updateTimeEl.textContent = time;
       dataSourceEl.textContent = source;
       sourceNameEl.textContent = source;
-      openSource.href = SHEET_URL;
+      openSource.href = SHEET_URLS[currentEmployeeType];
     }
 
     // محلل CSV مع دعم للفواصل داخل علامات الاقتباس
@@ -1087,7 +1177,7 @@
       const date = new Date().toISOString().slice(0, 10);
       
       a.href = url;
-      a.download = `موظفين_${date}.csv`;
+      a.download = `موظفين_${currentEmployeeType === 'local' ? 'وطنيين' : 'أجانب'}_${date}.csv`;
       a.style.display = 'none';
       
       document.body.appendChild(a);
@@ -1117,16 +1207,26 @@
     }
 
     // بيانات تجريبية
-    function demoData() {
-      return [
-        { id: 'D-1001', name: 'أحمد محمد عبدالله', job: 'محاسب', department: 'المالية' },
-        { id: 'D-1002', name: 'سارة خالد أحمد', job: 'مطور واجهات', department: 'التقنية' },
-        { id: 'D-1003', name: 'علي حسن إبراهيم', job: 'أخصائي موارد بشرية', department: 'الموارد البشرية' },
-        { id: 'D-1004', name: 'فاطمة عبد الرحمن', job: 'مديرة تسويق', department: 'التسويق' },
-        { id: 'D-1005', name: 'محمد نور سليمان', job: 'مهندس برمجيات', department: 'التطوير' },
-        { id: 'D-1006', name: 'ريم عبد العزيز', job: 'مسؤولة علاقات عملاء', department: 'خدمة العملاء' },
-        { id: 'D-1007', name: 'خالد أمين فارس', job: 'مدير مشاريع', department: 'إدارة المشاريع' },
-      ];
+    function demoData(type) {
+      if (type === 'local') {
+        return [
+          { id: 'D-1001', name: 'أحمد محمد عبدالله', job: 'محاسب', department: 'المالية' },
+          { id: 'D-1002', name: 'سارة خالد أحمد', job: 'مطور واجهات', department: 'التقنية' },
+          { id: 'D-1003', name: 'علي حسن إبراهيم', job: 'أخصائي موارد بشرية', department: 'الموارد البشرية' },
+          { id: 'D-1004', name: 'فاطمة عبد الرحمن', job: 'مديرة تسويق', department: 'التسويق' },
+          { id: 'D-1005', name: 'محمد نور سليمان', job: 'مهندس برمجيات', department: 'التطوير' },
+          { id: 'D-1006', name: 'ريم عبد العزيز', job: 'مسؤولة علاقات عملاء', department: 'خدمة العملاء' },
+          { id: 'D-1007', name: 'خالد أمين فارس', job: 'مدير مشاريع', department: 'إدارة المشاريع' },
+        ];
+      } else {
+        return [
+          { id: 'F-2001', name: 'John Smith', job: 'Senior Developer', department: 'التطوير' },
+          { id: 'F-2002', name: 'Maria Garcia', job: 'Marketing Manager', department: 'التسويق' },
+          { id: 'F-2003', name: 'David Kim', job: 'Financial Analyst', department: 'المالية' },
+          { id: 'F-2004', name: 'Sarah Johnson', job: 'HR Specialist', department: 'الموارد البشرية' },
+          { id: 'F-2005', name: 'Robert Williams', job: 'Project Coordinator', department: 'إدارة المشاريع' },
+        ];
+      }
     }
 
     // بدء التطبيق عند تحميل الصفحة
